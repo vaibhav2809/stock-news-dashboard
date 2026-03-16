@@ -7,8 +7,9 @@ WORKDIR /app
 COPY gradle/ gradle/
 COPY gradlew build.gradle settings.gradle ./
 
-# Override gradle.properties for Linux (the local file has Windows-specific tmpdir path)
-RUN echo "org.gradle.jvmargs=-Djava.net.preferIPv4Stack=true" > gradle.properties && \
+# Fix execute permission (Windows Git strips it) and override gradle.properties for Linux
+RUN chmod +x gradlew && \
+    echo "org.gradle.jvmargs=-Djava.net.preferIPv4Stack=true" > gradle.properties && \
     echo "org.gradle.daemon=false" >> gradle.properties
 
 # Download dependencies (cached unless build files change)
