@@ -34,9 +34,13 @@ COPY --from=builder /app/build/libs/*.jar app.jar
 # Switch to non-root user
 USER appuser
 
-EXPOSE 8080
+# Railway injects PORT; default to 8080 for docker-compose
+ENV PORT=8080
+
+EXPOSE ${PORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-  CMD wget --spider -q http://localhost:8080/api/v1/news/trending?size=1 || exit 1
+  CMD wget --spider -q http://localhost:${PORT}/api/v1/news/trending?size=1 || exit 1
 
-ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]
+# Use PORT env var so Railway can assign its own port
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --spring.profiles.active=prod --server.port=${PORT}"]
