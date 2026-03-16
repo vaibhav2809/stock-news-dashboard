@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+/* Use class-based dark mode instead of prefers-color-scheme media query.
+   The themeStore toggles the 'dark' class on <html> to control the theme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Brand colors - financial dashboard palette */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  /* Sentiment colors */
+  --color-sentiment-positive: #22c55e;
+  --color-sentiment-negative: #ef4444;
+  --color-sentiment-neutral: #6b7280;
+
+  /* Sidebar width */
+  --spacing-sidebar: 260px;
+}
+
+/* Base layer styles */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-gray-300 dark:bg-gray-700;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-600;
+  }
+}

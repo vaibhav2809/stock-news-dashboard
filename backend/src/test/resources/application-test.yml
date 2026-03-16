@@ -1,0 +1,36 @@
+# Test profile — uses H2 in-memory database and disables external dependencies.
+# This profile is activated by @ActiveProfiles("test") in integration tests.
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cache:
+    type: none
+
+# Disable security filters for tests
+app:
+  finnhub:
+    api-key: test-key
+    base-url: http://localhost:8089
+  newsdata:
+    api-key: test-key
+    base-url: http://localhost:8089
+  security:
+    jwt-secret: dGVzdC1zZWNyZXQta2V5LWZvci11bml0LXRlc3RpbmctcHVycG9zZXMtb25seQ==
+    jwt-expiration-ms: 3600000

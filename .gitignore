@@ -36,3 +36,15 @@ docker-data/
 # === Logs ===
 *.log
 logs/
+
+
+.claude/launch.json
+.claude/settings.local.json
+CLAUDE.md
+docs/BUILD_STEPS.md
+docs/TROUBLESHOOTING.md
+docs/DEPLOYMENT.md
+docs/DEVELOPMENT_PLAN.md
+docs/CHANGES.md
+docs/PROJECT.md
+docs/ONBOARDING.md

@@ -33,3 +33,6 @@ app:
     secret: ${JWT_SECRET:dev-secret-key-min-32-chars-long-for-hs256}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+  rate-limit:
+    daily-per-user: ${RATE_LIMIT_DAILY_PER_USER:100}
+    daily-anonymous: ${RATE_LIMIT_DAILY_ANONYMOUS:30}

@@ -45,8 +45,8 @@ dependencies {
     // API Documentation
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
 
-    // PDF Export
-    implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.1.24'
+    // PDF Export (Phase 8 — will be added when needed)
+    // implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.1.22'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
@@ -59,6 +59,7 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.wiremock:wiremock-standalone:3.10.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
