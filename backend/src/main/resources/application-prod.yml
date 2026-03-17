@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:stocknews}
+    username: ${PGUSER:stocknews}
+    password: ${PGPASSWORD:stocknews}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -15,8 +15,9 @@ spring:
     locations: classpath:db/migration
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:redis}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      host: ${REDISHOST:redis}
+      port: ${REDISPORT:6379}
+      password: ${REDISPASSWORD:}
 
 app:
   cors:
