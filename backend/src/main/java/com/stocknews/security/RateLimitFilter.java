@@ -29,7 +29,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Order(2)
-@Profile("!test")
+@Profile({"dev"})
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;

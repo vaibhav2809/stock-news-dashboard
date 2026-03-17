@@ -13,6 +13,7 @@ import java.util.List;
  * Configures Cross-Origin Resource Sharing (CORS) for the API.
  * Allowed origins are read from the CORS_ALLOWED_ORIGINS environment variable,
  * defaulting to localhost:5173 for local development.
+ * When set to "*", uses allowedOriginPatterns to support credentials.
  */
 @Configuration
 public class CorsConfig {
@@ -22,12 +23,20 @@ public class CorsConfig {
 
     /**
      * Creates a CORS filter that applies to /api/** and /ws/** paths.
+     * Uses allowedOriginPatterns when wildcard "*" is specified,
+     * since Spring does not allow allowCredentials with allowedOrigins("*").
      * @return configured CorsFilter bean
      */
     @Bean
     public CorsFilter corsFilter() {
         final CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+
+        if ("*".equals(allowedOrigins.trim())) {
+            config.setAllowedOriginPatterns(List.of("*"));
+        } else {
+            config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        }
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

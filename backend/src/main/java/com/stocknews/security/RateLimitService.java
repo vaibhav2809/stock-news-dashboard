@@ -19,7 +19,7 @@ import java.time.LocalDate;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Profile("!test")
+@Profile({"dev"})
 public class RateLimitService {
 
     private final StringRedisTemplate stringRedisTemplate;

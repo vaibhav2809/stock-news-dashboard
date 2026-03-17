@@ -27,7 +27,7 @@ import java.util.Map;
  */
 @Configuration
 @EnableCaching
-@Profile("!test")
+@Profile({"dev"})
 public class RedisConfig {
 
     /**
