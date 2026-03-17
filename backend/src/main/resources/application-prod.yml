@@ -39,5 +39,7 @@ app:
 
 logging:
   level:
-    com.stocknews: INFO
+    com.stocknews: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.filter: DEBUG
     org.springframework: WARN

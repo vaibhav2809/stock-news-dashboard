@@ -1,6 +1,7 @@
 package com.stocknews.config;
 
 import com.stocknews.security.JwtAuthenticationFilter;
+import com.stocknews.security.RequestDebugFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +35,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsFilter corsFilter;
+    private final RequestDebugFilter requestDebugFilter;
 
     /**
      * Configures the security filter chain with JWT authentication.
@@ -91,7 +93,8 @@ public class SecurityConfig {
                         // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
-                // CorsFilter runs first to handle preflight and add CORS headers
+                // Debug filter runs first, then CorsFilter, then JWT filter
+                .addFilterBefore(requestDebugFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
