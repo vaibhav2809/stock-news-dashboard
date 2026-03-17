@@ -1,7 +1,6 @@
 package com.stocknews.config;
 
 import com.stocknews.security.JwtAuthenticationFilter;
-import com.stocknews.security.RequestDebugFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,14 +18,16 @@ import org.springframework.web.filter.CorsFilter;
 
 /**
  * Spring Security configuration with JWT-based stateless authentication.
- * Public endpoints: auth routes, news, symbols, sentiment, health, Swagger docs.
+ * Public endpoints: auth routes, news, symbols, sentiment, health, admin, Swagger docs.
  * Protected endpoints: watchlist, alerts, spaces, user profile (require valid access token).
  * Returns 401 (not 403) for unauthenticated requests so the frontend can auto-refresh tokens.
  *
- * CORS is NOT handled by Spring Security (.cors() is intentionally omitted).
- * Instead, a standalone CorsFilter bean from CorsConfig runs BEFORE the security
- * filter chain via addFilterBefore. This avoids a known interaction where Spring
- * Security's CORS integration interferes with POST request authorization.
+ * CORS is handled by a standalone CorsFilter bean (from CorsConfig) injected into the
+ * security filter chain via addFilterBefore. Spring Security's .cors() is intentionally
+ * NOT used to avoid a confirmed interaction issue where it interferes with POST request
+ * authorization in Spring Security 6.x / Spring Boot 3.4.x.
+ *
+ * Uses AntPathRequestMatcher explicitly for reliable path matching across all HTTP methods.
  */
 @Configuration
 @EnableWebSecurity
@@ -35,14 +36,13 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsFilter corsFilter;
-    private final RequestDebugFilter requestDebugFilter;
 
     /**
      * Configures the security filter chain with JWT authentication.
-     * CorsFilter is added before the JWT filter so CORS preflight (OPTIONS)
-     * is handled before any security checks. Spring Security's .cors() is
-     * deliberately NOT used due to a confirmed interaction issue where it
-     * blocks POST requests to permitAll endpoints.
+     * Filter order: CorsFilter → JwtAuthenticationFilter → Spring Security filters.
+     * CorsFilter handles CORS preflight (OPTIONS) and adds CORS headers to all responses.
+     * JwtAuthenticationFilter extracts and validates JWT tokens from Authorization header.
+     * Unauthenticated requests to protected endpoints return 401 JSON response.
      *
      * @param http the HttpSecurity builder
      * @return the configured SecurityFilterChain
@@ -93,8 +93,7 @@ public class SecurityConfig {
                         // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
-                // Debug filter runs first, then CorsFilter, then JWT filter
-                .addFilterBefore(requestDebugFilter, UsernamePasswordAuthenticationFilter.class)
+                // CorsFilter runs first to handle preflight and add CORS headers
                 .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
