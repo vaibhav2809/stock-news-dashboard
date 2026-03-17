@@ -62,36 +62,9 @@ public class SecurityConfig {
                             );
                         })
                 )
+                // DIAGNOSTIC: temporarily permit ALL to isolate if issue is authorization or filter
                 .authorizeHttpRequests(auth -> auth
-                        // Preflight OPTIONS requests — always permit
-                        .requestMatchers(new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name())).permitAll()
-
-                        // Auth endpoints — always public (register, login, refresh)
-                        .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/**")).permitAll()
-
-                        // Symbol search (autocomplete) — public
-                        .requestMatchers(new AntPathRequestMatcher("/api/v1/symbols/**", HttpMethod.GET.name())).permitAll()
-
-                        // News endpoints — all public (GET search + POST fetch)
-                        .requestMatchers(new AntPathRequestMatcher("/api/v1/news/**")).permitAll()
-
-                        // Sentiment analysis — public (read-only)
-                        .requestMatchers(new AntPathRequestMatcher("/api/v1/sentiment/**", HttpMethod.GET.name())).permitAll()
-
-                        // Health/version check — public
-                        .requestMatchers(new AntPathRequestMatcher("/api/v1/health/**")).permitAll()
-
-                        // Admin endpoints — public for now (import triggers)
-                        .requestMatchers(new AntPathRequestMatcher("/api/v1/admin/**")).permitAll()
-
-                        // Swagger / OpenAPI docs — public
-                        .requestMatchers(new AntPathRequestMatcher("/swagger-ui/**")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/swagger-ui.html")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/api-docs/**")).permitAll()
-
-                        // Everything else requires authentication
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
