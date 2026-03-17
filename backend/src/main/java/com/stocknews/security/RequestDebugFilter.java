@@ -6,19 +6,24 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 /**
- * Temporary diagnostic filter that logs request method, URI, and security context
- * to help debug why POST requests are being rejected by Spring Security.
- * This filter runs early in the chain and logs before and after the chain processes.
+ * Temporary diagnostic filter that adds debug headers to every response.
+ * Headers include the request method, URI, servlet path, and whether the
+ * AntPathRequestMatcher for /api/v1/auth/** matches the request.
+ * Check X-Debug-* response headers in curl -v output.
  */
 @Slf4j
 @Component
 public class RequestDebugFilter extends OncePerRequestFilter {
+
+    private static final AntPathRequestMatcher AUTH_MATCHER =
+            new AntPathRequestMatcher("/api/v1/auth/**");
 
     @Override
     protected void doFilterInternal(
@@ -28,18 +33,18 @@ public class RequestDebugFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         final String method = request.getMethod();
         final String uri = request.getRequestURI();
-        final String contextPath = request.getContextPath();
         final String servletPath = request.getServletPath();
-        final String pathInfo = request.getPathInfo();
-        final String authHeader = request.getHeader("Authorization");
-        final boolean hasAuth = authHeader != null;
+        final boolean matchesAuth = AUTH_MATCHER.matches(request);
 
-        log.info("DEBUG-FILTER [BEFORE] method={}, uri={}, contextPath={}, servletPath={}, pathInfo={}, hasAuth={}",
-                method, uri, contextPath, servletPath, pathInfo, hasAuth);
+        // Add debug headers to the response so we can see them in curl -v
+        response.setHeader("X-Debug-Method", method);
+        response.setHeader("X-Debug-URI", uri);
+        response.setHeader("X-Debug-ServletPath", servletPath);
+        response.setHeader("X-Debug-AuthMatch", String.valueOf(matchesAuth));
+        response.setHeader("X-Debug-ContextPath", request.getContextPath());
+
+        log.info("DEBUG method={}, uri={}, servletPath={}, authMatch={}", method, uri, servletPath, matchesAuth);
 
         filterChain.doFilter(request, response);
-
-        log.info("DEBUG-FILTER [AFTER] method={}, uri={}, status={}",
-                method, uri, response.getStatus());
     }
 }
