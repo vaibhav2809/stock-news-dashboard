@@ -114,9 +114,9 @@ public class NewsAggregatorService {
      */
     @Cacheable(value = "news", key = "#request.hashCode()", unless = "#result.totalElements == 0")
     public PaginatedResponse<NewsArticleResponse> searchNews(NewsSearchRequest request) {
-        log.debug("Searching news with filters: symbols={}, source={}, sentiment={}, page={}, size={}",
+        log.debug("Searching news with filters: symbols={}, source={}, sentiment={}, keyword={}, page={}, size={}",
                 request.getSymbols(), request.getSource(), request.getSentiment(),
-                request.getPage(), request.getSize());
+                request.getKeyword(), request.getPage(), request.getSize());
 
         final Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
 
@@ -131,6 +131,9 @@ public class NewsAggregatorService {
         final boolean hasSymbols = request.getSymbols() != null && !request.getSymbols().isEmpty();
         final List<String> symbols = hasSymbols ? request.getSymbols() : List.of();
 
+        final String keyword = request.getKeyword() != null ? request.getKeyword().trim() : "";
+        final boolean hasKeyword = !keyword.isEmpty();
+
         final Page<NewsArticle> page = newsArticleRepository.searchArticles(
                 symbols,
                 hasSymbols,
@@ -138,6 +141,8 @@ public class NewsAggregatorService {
                 request.getSentiment(),
                 fromDateTime,
                 toDateTime,
+                keyword,
+                hasKeyword,
                 pageable
         );
 
@@ -146,6 +151,29 @@ public class NewsAggregatorService {
                 .toList();
 
         return PaginatedResponse.of(articles, page.getNumber(), page.getTotalPages(), page.getTotalElements());
+    }
+
+    /**
+     * Searches for news articles by keyword in title and summary.
+     * Returns paginated results ordered by publication date descending.
+     *
+     * @param keyword the search keyword (case-insensitive partial match)
+     * @param page page number (zero-based)
+     * @param size results per page
+     * @return paginated list of matching articles
+     */
+    public PaginatedResponse<NewsArticleResponse> searchByKeyword(String keyword, int page, int size) {
+        log.debug("Keyword search: keyword={}, page={}, size={}", keyword, page, size);
+
+        final Pageable pageable = PageRequest.of(page, size);
+        final Page<NewsArticle> articlePage = newsArticleRepository.searchByKeyword(keyword, pageable);
+
+        final List<NewsArticleResponse> articles = articlePage.getContent().stream()
+                .map(NewsArticleResponse::fromEntity)
+                .toList();
+
+        return PaginatedResponse.of(articles, articlePage.getNumber(),
+                articlePage.getTotalPages(), articlePage.getTotalElements());
     }
 
     /**

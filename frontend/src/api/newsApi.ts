@@ -26,6 +26,9 @@ export async function fetchNewsArticles(
   if (params.toDate) {
     queryParams.set('toDate', params.toDate);
   }
+  if (params.keyword) {
+    queryParams.set('keyword', params.keyword);
+  }
   if (params.page !== undefined) {
     queryParams.set('page', params.page.toString());
   }

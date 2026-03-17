@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Search, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNewsSearch } from '@/hooks/useNewsSearch';
+import { useDebounce } from '@/hooks/useDebounce';
 import { triggerNewsFetch } from '@/api/newsApi';
 import { NewsSearchBar, NewsList, NewsFilters } from '@/components/news';
 import type { Sentiment, NewsSource } from '@/types';
@@ -28,6 +29,10 @@ export function NewsFeedPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
+  // Keyword search state
+  const [keywordInput, setKeywordInput] = useState('');
+  const debouncedKeyword = useDebounce(keywordInput.trim(), 500);
+
   /** Build search params from current filter state. */
   const searchParams = {
     symbols: selectedSymbols.length > 0 ? selectedSymbols : undefined,
@@ -35,6 +40,7 @@ export function NewsFeedPage() {
     source: selectedSource ?? undefined,
     fromDate: fromDate || undefined,
     toDate: toDate || undefined,
+    keyword: debouncedKeyword || undefined,
     page: currentPage,
     size: DEFAULT_PAGE_SIZE,
   };
@@ -76,11 +82,24 @@ export function NewsFeedPage() {
     setCurrentPage(0);
   }, []);
 
+  /** Handles keyword input changes and resets page. */
+  const handleKeywordChange = useCallback((value: string) => {
+    setKeywordInput(value);
+    setCurrentPage(0);
+  }, []);
+
+  /** Clears the keyword input. */
+  const handleClearKeyword = useCallback(() => {
+    setKeywordInput('');
+    setCurrentPage(0);
+  }, []);
+
   const handleClearAllFilters = useCallback(() => {
     setSelectedSentiment(null);
     setSelectedSource(null);
     setFromDate('');
     setToDate('');
+    setKeywordInput('');
     setCurrentPage(0);
   }, []);
 
@@ -132,6 +151,29 @@ export function NewsFeedPage() {
         selectedSymbols={selectedSymbols}
         onSymbolsChange={handleSymbolsChange}
       />
+
+      {/* Keyword search */}
+      <div className="relative">
+        <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 dark:border-gray-700 dark:bg-gray-800">
+          <Search className="h-4 w-4 flex-shrink-0 text-gray-400" />
+          <input
+            type="text"
+            value={keywordInput}
+            onChange={(e) => handleKeywordChange(e.target.value)}
+            placeholder="Search by keyword (e.g., EV, banking, AI)..."
+            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-500"
+          />
+          {keywordInput && (
+            <button
+              onClick={handleClearKeyword}
+              className="rounded-sm p-0.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              aria-label="Clear keyword search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Filters */}
       <NewsFilters

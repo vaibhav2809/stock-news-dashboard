@@ -1,6 +1,6 @@
 # Stock News Dashboard
 
-> A real-time stock news aggregation platform with sentiment analysis, watchlists, custom alerts, JWT authentication, and rate limiting. Built through Phase 7 of 9.
+> A real-time stock news aggregation platform with sentiment analysis, watchlists, custom alerts, JWT authentication, and rate limiting. Supports US and Indian (NSE/BSE) stock markets. Deployed on Railway.
 
 ## Quick Start
 
@@ -87,8 +87,12 @@ See `.env.example` for all available variables with descriptions.
 
 ## Production Deployment
 
-Deploy the full stack with a single command:
+### Railway (Recommended)
+The app is deployed on [Railway](https://railway.app) with two services (backend + frontend) and a managed PostgreSQL database. Railway handles builds, deployments, and SSL automatically.
 
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Railway setup instructions and environment variable configuration.
+
+### Self-Hosted Docker
 ```bash
 cp .env.example .env                                        # Fill in real values
 docker compose -f docker-compose.prod.yml up -d --build     # Build and start all services

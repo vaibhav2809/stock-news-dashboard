@@ -33,6 +33,9 @@ public class NewsSearchRequest {
     /** End date for the search range (inclusive). */
     private LocalDate toDate;
 
+    /** Free-text keyword to search in article titles and summaries. */
+    private String keyword;
+
     /** Page number (zero-based). */
     @Builder.Default
     private int page = 0;

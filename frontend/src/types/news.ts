@@ -37,6 +37,7 @@ export interface NewsSearchParams {
   sentiment?: Sentiment;
   fromDate?: string;
   toDate?: string;
+  keyword?: string;
   page?: number;
   size?: number;
 }

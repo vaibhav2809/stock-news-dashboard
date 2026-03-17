@@ -26,23 +26,30 @@ public class StockSymbolController {
     private final StockSymbolRepository stockSymbolRepository;
 
     /**
-     * Searches for stock symbols by ticker or company name.
+     * Searches for stock symbols by ticker or company name, with an optional exchange filter.
      * Used by the autocomplete search input on the frontend.
      *
      * @param query the search query (matches ticker or company name)
+     * @param exchange optional exchange filter (e.g., "NSE", "NASDAQ")
      * @return list of matching symbols
      */
     @GetMapping("/search")
-    @Operation(summary = "Search stock symbols", description = "Search for stock symbols by ticker or company name (autocomplete)")
+    @Operation(
+            summary = "Search stock symbols",
+            description = "Search for stock symbols by ticker or company name (autocomplete). Optionally filter by exchange."
+    )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved matching symbols")
     public ResponseEntity<List<StockSymbolResponse>> searchSymbols(
             @Parameter(description = "Search query (ticker or company name)", example = "AAPL")
-            @RequestParam String query
+            @RequestParam String query,
+
+            @Parameter(description = "Filter by stock exchange (e.g., NSE, NASDAQ)", example = "NSE")
+            @RequestParam(required = false) String exchange
     ) {
-        log.debug("GET /api/v1/symbols/search — query={}", query);
+        log.debug("GET /api/v1/symbols/search — query={}, exchange={}", query, exchange);
 
         final List<StockSymbolResponse> results = stockSymbolRepository
-                .findByTickerContainingIgnoreCaseOrCompanyNameContainingIgnoreCaseAndIsActiveTrue(query, query)
+                .searchByQueryAndExchange(query, exchange)
                 .stream()
                 .map(StockSymbolResponse::fromEntity)
                 .toList();

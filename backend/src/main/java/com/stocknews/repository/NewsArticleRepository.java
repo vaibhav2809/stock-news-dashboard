@@ -36,13 +36,18 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, Long> 
     Page<NewsArticle> findBySymbolOrderByPublishedAtDesc(String symbol, Pageable pageable);
 
     /**
-     * Finds articles matching multiple optional filters.
+     * Finds articles matching multiple optional filters including keyword search.
      * Uses JPQL with conditional logic so any filter can be null (meaning "no filter").
+     * When a keyword is provided, it searches in both title and summary (case-insensitive).
+     *
      * @param symbols list of ticker symbols (null = all symbols)
+     * @param hasSymbols whether the symbols list is non-empty
      * @param source news source filter (null = all sources)
      * @param sentiment sentiment filter (null = all sentiments)
      * @param fromDate start date (null = no start bound)
      * @param toDate end date (null = no end bound)
+     * @param keyword free-text keyword to match in title or summary (null = no keyword filter)
+     * @param hasKeyword whether the keyword is non-empty
      * @param pageable pagination parameters
      * @return paginated, filtered list of articles
      */
@@ -53,6 +58,8 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, Long> 
               AND (:#{#sentiment == null} = true OR a.sentiment = :sentiment)
               AND (:#{#fromDate == null} = true OR a.publishedAt >= :fromDate)
               AND (:#{#toDate == null} = true OR a.publishedAt <= :toDate)
+              AND (:hasKeyword = false OR (LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(a.summary) LIKE LOWER(CONCAT('%', :keyword, '%'))))
             ORDER BY a.publishedAt DESC
             """)
     Page<NewsArticle> searchArticles(
@@ -62,8 +69,26 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, Long> 
             @Param("sentiment") Sentiment sentiment,
             @Param("fromDate") OffsetDateTime fromDate,
             @Param("toDate") OffsetDateTime toDate,
+            @Param("keyword") String keyword,
+            @Param("hasKeyword") boolean hasKeyword,
             Pageable pageable
     );
+
+    /**
+     * Searches articles by keyword in title or summary, ordered by publication date descending.
+     * Used for the dedicated keyword search endpoint.
+     *
+     * @param keyword the search keyword (case-insensitive partial match)
+     * @param pageable pagination parameters
+     * @return paginated list of matching articles
+     */
+    @Query("""
+            SELECT n FROM NewsArticle n
+            WHERE (LOWER(n.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(n.summary) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            ORDER BY n.publishedAt DESC
+            """)
+    Page<NewsArticle> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
     /**
      * Finds the most recent articles across all symbols for the trending page.

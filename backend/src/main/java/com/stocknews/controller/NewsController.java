@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * REST controller for news article search, retrieval, and aggregation.
- * All endpoints are publicly accessible (authentication will be added in Phase 5).
+ * All GET endpoints are publicly accessible. POST endpoints for fetch/backfill are also public.
  */
 @Slf4j
 @RestController
@@ -33,13 +33,14 @@ public class NewsController {
 
     /**
      * Searches for news articles with optional filters.
-     * Supports filtering by symbols, source, sentiment, and date range.
+     * Supports filtering by symbols, source, sentiment, date range, and keyword.
      *
      * @param symbols comma-separated stock ticker symbols (e.g., "AAPL,TSLA")
      * @param source filter by news source (FINNHUB or NEWSDATA_IO)
      * @param sentiment filter by sentiment (POSITIVE, NEGATIVE, NEUTRAL)
      * @param fromDate start date (inclusive, format: yyyy-MM-dd)
      * @param toDate end date (inclusive, format: yyyy-MM-dd)
+     * @param keyword free-text keyword to search in article titles and summaries
      * @param page page number (zero-based, default: 0)
      * @param size results per page (default: 20)
      * @return paginated list of matching articles
@@ -47,7 +48,7 @@ public class NewsController {
     @GetMapping
     @Operation(
             summary = "Search news articles",
-            description = "Search and filter news articles by symbols, source, sentiment, and date range. All filters are optional."
+            description = "Search and filter news articles by symbols, source, sentiment, date range, and keyword. All filters are optional."
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved news articles")
     public ResponseEntity<PaginatedResponse<NewsArticleResponse>> searchNews(
@@ -66,14 +67,17 @@ public class NewsController {
             @Parameter(description = "End date (yyyy-MM-dd)", example = "2026-03-16")
             @RequestParam(required = false) LocalDate toDate,
 
+            @Parameter(description = "Free-text keyword to search in titles and summaries", example = "semiconductor")
+            @RequestParam(required = false) String keyword,
+
             @Parameter(description = "Page number (zero-based)")
             @RequestParam(defaultValue = "0") int page,
 
             @Parameter(description = "Results per page")
             @RequestParam(defaultValue = "20") int size
     ) {
-        log.info("GET /api/v1/news — symbols={}, source={}, sentiment={}, page={}, size={}",
-                symbols, source, sentiment, page, size);
+        log.info("GET /api/v1/news — symbols={}, source={}, sentiment={}, keyword={}, page={}, size={}",
+                symbols, source, sentiment, keyword, page, size);
 
         final NewsSearchRequest request = NewsSearchRequest.builder()
                 .symbols(symbols)
@@ -81,11 +85,49 @@ public class NewsController {
                 .sentiment(sentiment)
                 .fromDate(fromDate)
                 .toDate(toDate)
+                .keyword(keyword)
                 .page(page)
                 .size(size)
                 .build();
 
         final PaginatedResponse<NewsArticleResponse> response = newsAggregatorService.searchNews(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Searches for news articles by keyword in their title or summary.
+     * This is a dedicated endpoint for keyword-only searches without other filters.
+     *
+     * @param keyword the search keyword (case-insensitive partial match)
+     * @param page page number (zero-based, default: 0)
+     * @param size results per page (default: 20)
+     * @return paginated list of matching articles
+     */
+    @GetMapping("/search")
+    @Operation(
+            summary = "Search news by keyword",
+            description = "Search stored news articles by keyword in title and summary. Returns paginated results ordered by publication date."
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved matching articles")
+    public ResponseEntity<PaginatedResponse<NewsArticleResponse>> searchByKeyword(
+            @Parameter(description = "Search keyword", example = "semiconductor")
+            @RequestParam String keyword,
+
+            @Parameter(description = "Page number (zero-based)")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Results per page")
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        log.info("GET /api/v1/news/search — keyword={}, page={}, size={}", keyword, page, size);
+
+        final String trimmedKeyword = keyword.trim();
+        if (trimmedKeyword.isEmpty()) {
+            return ResponseEntity.ok(PaginatedResponse.of(List.of(), 0, 0, 0));
+        }
+
+        final PaginatedResponse<NewsArticleResponse> response =
+                newsAggregatorService.searchByKeyword(trimmedKeyword, page, size);
         return ResponseEntity.ok(response);
     }
 
