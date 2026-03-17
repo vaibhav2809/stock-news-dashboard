@@ -12,6 +12,10 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Accept VITE_API_BASE_URL as a build argument so Railway can inject it
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Build the production bundle
 RUN npm run build
 
@@ -31,10 +35,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 ENV PORT=80
 # Default backend URL for docker-compose; override for Railway
 ENV BACKEND_URL=http://backend:8080
-# Tell nginx's envsubst to ONLY replace these two variables (not $host, $uri, etc.)
-ENV NGINX_ENVSUBST_TEMPLATE_SUFFIX=""
 
 EXPOSE ${PORT}
 
-# Use envsubst manually to only replace PORT and BACKEND_URL, preserving nginx variables
+# Use envsubst to replace PORT and BACKEND_URL in nginx template
 CMD ["/bin/sh", "-c", "envsubst '${PORT} ${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
