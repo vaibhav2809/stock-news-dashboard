@@ -20,7 +20,7 @@ import java.util.Map;
 public class HealthController {
 
     private static final Instant STARTUP_TIME = Instant.now();
-    private static final String BUILD_VERSION = "v4-cors-fix";
+    private static final String BUILD_VERSION = "v5-ant-matcher";
 
     /**
      * Returns application health status with startup time and build version.

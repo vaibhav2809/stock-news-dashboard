@@ -14,14 +14,19 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
  * Spring Security configuration with JWT-based stateless authentication.
- * Public endpoints: auth routes, news search, trending, sentiment, symbols, Swagger docs.
+ * Public endpoints: auth routes, news, symbols, sentiment, health, Swagger docs.
  * Protected endpoints: watchlist, alerts, spaces, user profile (require valid access token).
  * Returns 401 (not 403) for unauthenticated requests so the frontend can auto-refresh tokens.
  *
- * CORS is configured via .cors(Customizer.withDefaults()) which auto-discovers
+ * Uses AntPathRequestMatcher explicitly instead of the default MvcRequestMatcher
+ * to avoid known path-matching issues in Spring Security 6.x where MvcRequestMatcher
+ * can silently fail to match POST requests and certain wildcard patterns.
+ *
+ * CORS is configured via Customizer.withDefaults() which auto-discovers
  * the CorsConfigurationSource bean from CorsConfig.
  */
 @Configuration
@@ -33,9 +38,9 @@ public class SecurityConfig {
 
     /**
      * Configures the security filter chain with JWT authentication.
+     * Uses AntPathRequestMatcher for reliable path matching across all HTTP methods.
      * CORS uses CorsConfigurationSource bean (see CorsConfig), CSRF disabled (stateless JWT),
-     * sessions are stateless, OPTIONS preflight requests are always permitted,
-     * JWT filter runs before UsernamePasswordAuthenticationFilter.
+     * sessions are stateless, JWT filter runs before UsernamePasswordAuthenticationFilter.
      * Unauthenticated requests return 401 (not 403) to trigger frontend token refresh.
      *
      * @param http the HttpSecurity builder
@@ -59,30 +64,31 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Preflight OPTIONS requests — always permit
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name())).permitAll()
 
-                        // Auth endpoints — always public
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Auth endpoints — always public (register, login, refresh)
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/**")).permitAll()
 
                         // Symbol search (autocomplete) — public
-                        .requestMatchers(HttpMethod.GET, "/api/v1/symbols/**").permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/symbols/**", HttpMethod.GET.name())).permitAll()
 
-                        // News endpoints — public (read + fetch)
-                        .requestMatchers("/api/v1/news/**").permitAll()
+                        // News endpoints — all public (GET search + POST fetch)
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/news/**")).permitAll()
 
                         // Sentiment analysis — public (read-only)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/sentiment/**").permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/sentiment/**", HttpMethod.GET.name())).permitAll()
 
                         // Health/version check — public
-                        .requestMatchers(HttpMethod.GET, "/api/v1/health/**").permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/health/**")).permitAll()
+
+                        // Admin endpoints — public for now (import triggers)
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/admin/**")).permitAll()
 
                         // Swagger / OpenAPI docs — public
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/api-docs/**"
-                        ).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/swagger-ui/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/swagger-ui.html")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api-docs/**")).permitAll()
 
                         // Everything else requires authentication
                         .anyRequest().authenticated()
