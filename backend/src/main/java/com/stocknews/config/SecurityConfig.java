@@ -27,7 +27,8 @@ public class SecurityConfig {
 
     /**
      * Configures the security filter chain with JWT authentication.
-     * CSRF disabled (stateless JWT), sessions are stateless,
+     * CORS enabled via the CorsFilter bean, CSRF disabled (stateless JWT),
+     * sessions are stateless, OPTIONS preflight requests are always permitted,
      * JWT filter runs before UsernamePasswordAuthenticationFilter.
      *
      * @param http the HttpSecurity builder
@@ -37,14 +38,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Preflight OPTIONS requests — always permit
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // Auth endpoints — always public
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
 
                         // News search and trending — public (read-only)
                         .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
+
+                        // News fetch (POST) — public for triggering fetches
+                        .requestMatchers(HttpMethod.POST, "/api/v1/news/fetch").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/news/backfill-sentiment").permitAll()
 
                         // Sentiment analysis — public (read-only)
                         .requestMatchers(HttpMethod.GET, "/api/v1/sentiment/**").permitAll()
