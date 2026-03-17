@@ -1,6 +1,7 @@
 package com.stocknews.config;
 
 import com.stocknews.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,8 +16,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 /**
  * Spring Security configuration with JWT-based stateless authentication.
- * Public endpoints: auth routes, news search, trending, sentiment, Swagger docs.
- * Protected endpoints: spaces, watchlist, alerts, user profile (require valid access token).
+ * Public endpoints: auth routes, news search, trending, sentiment, symbols, Swagger docs.
+ * Protected endpoints: watchlist, alerts, spaces, user profile (require valid access token).
+ * Returns 401 (not 403) for unauthenticated requests so the frontend can auto-refresh tokens.
  */
 @Configuration
 @EnableWebSecurity
@@ -30,6 +32,7 @@ public class SecurityConfig {
      * CORS enabled via the CorsFilter bean, CSRF disabled (stateless JWT),
      * sessions are stateless, OPTIONS preflight requests are always permitted,
      * JWT filter runs before UsernamePasswordAuthenticationFilter.
+     * Unauthenticated requests return 401 (not 403) to trigger frontend token refresh.
      *
      * @param http the HttpSecurity builder
      * @return the configured SecurityFilterChain
@@ -41,12 +44,24 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write(
+                                    "{\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Authentication required\"}}"
+                            );
+                        })
+                )
                 .authorizeHttpRequests(auth -> auth
                         // Preflight OPTIONS requests — always permit
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Auth endpoints — always public
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+
+                        // Symbol search (autocomplete) — public
+                        .requestMatchers(HttpMethod.GET, "/api/v1/symbols/**").permitAll()
 
                         // News search and trending — public (read-only)
                         .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
