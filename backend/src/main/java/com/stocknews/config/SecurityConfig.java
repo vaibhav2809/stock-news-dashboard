@@ -29,8 +29,10 @@ public class SecurityConfig {
 
     /**
      * Configures the security filter chain with JWT authentication.
-     * CORS enabled via the CorsConfigurationSource bean, CSRF disabled (stateless JWT),
-     * sessions are stateless, OPTIONS preflight requests are always permitted,
+     * CORS is handled by a standalone CorsFilter bean at highest precedence (see CorsConfig).
+     * Spring Security's .cors() is intentionally NOT used here to avoid conflicts
+     * that block POST requests. CSRF disabled (stateless JWT), sessions are stateless,
+     * OPTIONS preflight requests are always permitted,
      * JWT filter runs before UsernamePasswordAuthenticationFilter.
      * Unauthenticated requests return 401 (not 403) to trigger frontend token refresh.
      *
@@ -41,7 +43,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {})
+                .cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions

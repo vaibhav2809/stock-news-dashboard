@@ -3,16 +3,19 @@ package com.stocknews.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
 /**
  * Configures Cross-Origin Resource Sharing (CORS) for the API.
- * Exposes a CorsConfigurationSource bean that Spring Security integrates with
- * via SecurityConfig's .cors() directive.
+ * Registers a CorsFilter at highest precedence so it runs BEFORE Spring Security.
+ * This ensures preflight OPTIONS requests are handled correctly and POST requests
+ * with Content-Type: application/json are not blocked.
  * Allowed origins are read from the CORS_ALLOWED_ORIGINS environment variable,
  * defaulting to localhost:5173 for local development.
  * When set to "*", uses allowedOriginPatterns to support credentials.
@@ -24,16 +27,16 @@ public class CorsConfig {
     private String allowedOrigins;
 
     /**
-     * Creates a CORS configuration source that applies to /api/** and /ws/** paths.
-     * Spring Security's .cors() integration automatically discovers this bean
-     * and applies it to the security filter chain.
+     * Creates a CORS filter that runs at highest precedence (before Spring Security).
+     * Applies to /api/** and /ws/** paths.
      * Uses allowedOriginPatterns when wildcard "*" is specified,
      * since Spring does not allow allowCredentials with allowedOrigins("*").
      *
-     * @return configured CorsConfigurationSource bean
+     * @return configured CorsFilter bean with highest order priority
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public CorsFilter corsFilter() {
         final CorsConfiguration config = new CorsConfiguration();
 
         if ("*".equals(allowedOrigins.trim())) {
@@ -49,6 +52,6 @@ public class CorsConfig {
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         source.registerCorsConfiguration("/ws/**", config);
-        return source;
+        return new CorsFilter(source);
     }
 }
