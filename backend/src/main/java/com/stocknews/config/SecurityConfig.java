@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -19,6 +20,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Public endpoints: auth routes, news search, trending, sentiment, symbols, Swagger docs.
  * Protected endpoints: watchlist, alerts, spaces, user profile (require valid access token).
  * Returns 401 (not 403) for unauthenticated requests so the frontend can auto-refresh tokens.
+ *
+ * CORS is configured via .cors(Customizer.withDefaults()) which auto-discovers
+ * the CorsConfigurationSource bean from CorsConfig.
  */
 @Configuration
 @EnableWebSecurity
@@ -29,10 +33,8 @@ public class SecurityConfig {
 
     /**
      * Configures the security filter chain with JWT authentication.
-     * CORS is handled by a standalone CorsFilter bean at highest precedence (see CorsConfig).
-     * Spring Security's .cors() is intentionally NOT used here to avoid conflicts
-     * that block POST requests. CSRF disabled (stateless JWT), sessions are stateless,
-     * OPTIONS preflight requests are always permitted,
+     * CORS uses CorsConfigurationSource bean (see CorsConfig), CSRF disabled (stateless JWT),
+     * sessions are stateless, OPTIONS preflight requests are always permitted,
      * JWT filter runs before UsernamePasswordAuthenticationFilter.
      * Unauthenticated requests return 401 (not 403) to trigger frontend token refresh.
      *
@@ -43,6 +45,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
@@ -59,20 +62,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Auth endpoints — always public
-                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                        .requestMatchers("/api/v1/auth/**").permitAll()
 
                         // Symbol search (autocomplete) — public
                         .requestMatchers(HttpMethod.GET, "/api/v1/symbols/**").permitAll()
 
-                        // News search and trending — public (read-only)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/news/**").permitAll()
-
-                        // News fetch (POST) — public for triggering fetches
-                        .requestMatchers(HttpMethod.POST, "/api/v1/news/fetch").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/news/backfill-sentiment").permitAll()
+                        // News endpoints — public (read + fetch)
+                        .requestMatchers("/api/v1/news/**").permitAll()
 
                         // Sentiment analysis — public (read-only)
                         .requestMatchers(HttpMethod.GET, "/api/v1/sentiment/**").permitAll()
+
+                        // Health/version check — public
+                        .requestMatchers(HttpMethod.GET, "/api/v1/health/**").permitAll()
 
                         // Swagger / OpenAPI docs — public
                         .requestMatchers(
