@@ -29,7 +29,7 @@ public class SecurityConfig {
 
     /**
      * Configures the security filter chain with JWT authentication.
-     * CORS enabled via the CorsFilter bean, CSRF disabled (stateless JWT),
+     * CORS enabled via the CorsConfigurationSource bean, CSRF disabled (stateless JWT),
      * sessions are stateless, OPTIONS preflight requests are always permitted,
      * JWT filter runs before UsernamePasswordAuthenticationFilter.
      * Unauthenticated requests return 401 (not 403) to trigger frontend token refresh.
