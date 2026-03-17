@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.filter.CorsFilter;
 
 /**
  * Spring Security configuration with JWT-based stateless authentication.
@@ -22,12 +22,10 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
  * Protected endpoints: watchlist, alerts, spaces, user profile (require valid access token).
  * Returns 401 (not 403) for unauthenticated requests so the frontend can auto-refresh tokens.
  *
- * Uses AntPathRequestMatcher explicitly instead of the default MvcRequestMatcher
- * to avoid known path-matching issues in Spring Security 6.x where MvcRequestMatcher
- * can silently fail to match certain wildcard patterns.
- *
- * CORS is configured via Customizer.withDefaults() which auto-discovers
- * the CorsConfigurationSource bean from CorsConfig.
+ * CORS is NOT handled by Spring Security (.cors() is intentionally omitted).
+ * Instead, a standalone CorsFilter bean from CorsConfig runs BEFORE the security
+ * filter chain via addFilterBefore. This avoids a known interaction where Spring
+ * Security's CORS integration interferes with POST request authorization.
  */
 @Configuration
 @EnableWebSecurity
@@ -35,13 +33,14 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorsFilter corsFilter;
 
     /**
      * Configures the security filter chain with JWT authentication.
-     * Uses AntPathRequestMatcher for reliable path matching across all HTTP methods.
-     * CORS uses CorsConfigurationSource bean (see CorsConfig), CSRF disabled (stateless JWT),
-     * sessions are stateless, JWT filter runs before UsernamePasswordAuthenticationFilter.
-     * Unauthenticated requests return 401 (not 403) to trigger frontend token refresh.
+     * CorsFilter is added before the JWT filter so CORS preflight (OPTIONS)
+     * is handled before any security checks. Spring Security's .cors() is
+     * deliberately NOT used due to a confirmed interaction issue where it
+     * blocks POST requests to permitAll endpoints.
      *
      * @param http the HttpSecurity builder
      * @return the configured SecurityFilterChain
@@ -50,7 +49,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
@@ -93,6 +91,8 @@ public class SecurityConfig {
                         // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
+                // CorsFilter runs first to handle preflight and add CORS headers
+                .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
