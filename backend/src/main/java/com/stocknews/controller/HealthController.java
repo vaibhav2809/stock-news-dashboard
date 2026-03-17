@@ -20,7 +20,7 @@ import java.util.Map;
 public class HealthController {
 
     private static final Instant STARTUP_TIME = Instant.now();
-    private static final String BUILD_VERSION = "v6-permitall-diagnostic";
+    private static final String BUILD_VERSION = "v7-final";
 
     /**
      * Returns application health status with startup time and build version.
