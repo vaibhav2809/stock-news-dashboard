@@ -1,3 +1,4 @@
+export { CommandPalette } from './CommandPalette';
 export { EmptyState } from './EmptyState';
 export { ErrorBanner } from './ErrorBanner';
 export { LoadingSpinner } from './LoadingSpinner';

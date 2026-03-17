@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { RefreshCw, Search, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNewsSearch } from '@/hooks/useNewsSearch';
@@ -18,10 +19,28 @@ const DEFAULT_PAGE_SIZE = 12;
  */
 export function NewsFeedPage() {
   const queryClient = useQueryClient();
+  const [urlParams, setUrlParams] = useSearchParams();
 
   // Search state
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+
+  /**
+   * Reads the ?symbol= query parameter on mount or navigation.
+   * This allows the Command Palette to pre-select a stock symbol
+   * by navigating to /?symbol=RELIANCE.
+   */
+  useEffect(() => {
+    const symbolFromUrl = urlParams.get('symbol');
+    if (symbolFromUrl && !selectedSymbols.includes(symbolFromUrl)) {
+      setSelectedSymbols((prev) =>
+        prev.includes(symbolFromUrl) ? prev : [...prev, symbolFromUrl],
+      );
+      // Clean up the URL parameter after consuming it
+      urlParams.delete('symbol');
+      setUrlParams(urlParams, { replace: true });
+    }
+  }, [urlParams, setUrlParams, selectedSymbols]);
 
   // Filter state
   const [selectedSentiment, setSelectedSentiment] = useState<Sentiment | null>(null);
